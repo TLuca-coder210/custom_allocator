@@ -1,3 +1,4 @@
+
 #include "my_alloc.h"
 #include <sys/mman.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@ static metadata_block_t *head = NULL;
 
 #define PAGE_SIZE 16384
 
+// allocation logic
 void *my_alloc(size_t size){
     if(size == 0){
         return NULL;
@@ -62,4 +64,34 @@ void *my_alloc(size_t size){
     }
     return (void*)(first_header + 1);
     return NULL;
+}
+
+// free memory logic
+void my_free(void *ptr){
+    if(ptr == NULL){
+        return;
+    }
+    metadata_block_t *block = ((metadata_block_t*)ptr) - 1;
+    if(block == NULL){
+        return;
+    }
+    block->is_free = 0;
+    // coalescing the right blocks
+    if(block->next != NULL && block->next->is_free == 0){
+        metadata_block_t *next_block = block->next;
+        block->size += sizeof(metadata_block_t) + next_block->size;
+        block->next = next_block->next;
+        if(next_block->next != NULL){
+            next_block->next->prev = block;
+        }
+    }
+    // coalescing the left blocks
+    if(block->prev != NULL && block->prev->is_free == 0){
+        metadata_block_t *prev_block = block->prev;
+        prev_block->size += sizeof(metadata_block_t) + block->size;
+        prev_block->next = block->next;
+        if(block->next != NULL){
+            block->next->prev = prev_block;
+        }
+    }
 }
