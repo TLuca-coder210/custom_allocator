@@ -95,3 +95,62 @@ void my_free(void *ptr){
         }
     }
 }
+
+void *my_realloc(void *ptr, size_t size){
+    if(ptr == NULL){
+        return my_alloc(size);
+    }
+    if(size == 0){
+        my_free(ptr);
+        return NULL;
+    }
+    size_t aligned_size = 0;
+    if(size % 16 == 0){
+        aligned_size = size;
+    }
+    else{
+        aligned_size = (size / 16 + 1) * 16;
+    }
+    metadata_block_t *block = ((metadata_block_t*)ptr) - 1;
+    if(block->size == aligned_size){
+        return ptr;
+    }   
+    else if(block->size >= aligned_size){
+        size_t total_size = block->size;
+        block->size = aligned_size;
+        if(total_size - block->size >= sizeof(metadata_block_t) + 16){
+            // create a new block and mark it as free
+            metadata_block_t *new_block = (void*)(ptr + aligned_size);
+            new_block->size = total_size - block->size - sizeof(metadata_block_t);
+            new_block->is_free = 1;
+            new_block->prev = block;
+            if(block->next != NULL){
+                new_block->next = block->next;
+                block->next->prev = new_block;
+                block->next = new_block;
+            }
+            my_free(new_block);
+        }
+        return ptr;
+    }
+    else{
+        if(block->next != NULL && block->next->is_free == 0){
+            size_t combined_size = block->size + sizeof(metadata_block_t) + block->next->size;
+            if(combined_size >= aligned_size){
+                block->next = block->next->next;
+                if(block->next != NULL){
+                    block->next->prev = block;
+                }
+                block->size = combined_size;
+                return ptr;
+            }
+        }
+        void *new_ptr = my_alloc(aligned_size);
+        if(new_ptr == NULL){
+            return NULL;
+        }
+        memcpy(new_ptr, ptr, block->size);
+        my_free(ptr);
+        return new_ptr;
+    }
+}
