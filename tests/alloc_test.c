@@ -40,10 +40,34 @@ void test_multiple_allocs(void){
     my_free(ptr1);
     my_free(ptr2);
     my_free(ptr3);
-    printf("Succes");
+    printf("Succes\n");
+}
+
+void test_realloc(void) {
+    int *p1 = (int *)my_alloc(4 * sizeof(int));
+    assert(p1 != NULL);
+    p1[0] = 10;
+    p1[3] = 40;
+    int *p2 = (int *)my_realloc(p1, 8 * sizeof(int));
+    assert(p2 != NULL);
+    assert(p2[0] == 10);
+    assert(p2[3] == 40);
+    p2[7] = 80;
+    assert(p2[7] == 80);
+    int *p3 = (int *)my_realloc(p2, 2 * sizeof(int));
+    assert(p3 != NULL);
+    assert(p3[0] == 10);
+    void *p4 = my_realloc(p3, 0);
+    assert(p4 == NULL);
+    void *p5 = my_realloc(NULL, 32);
+    assert(p5 != NULL);
+    assert(((uintptr_t)p5 % 16) == 0);
+    my_free(p5);
+    printf("Succes\n");
 }
 
 int main(void){
     test_basic_alloc();
     test_multiple_allocs();
+    test_realloc();
 }
