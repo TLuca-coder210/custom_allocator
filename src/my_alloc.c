@@ -2,6 +2,7 @@
 #include "my_alloc.h"
 #include <sys/mman.h>
 #include <unistd.h>
+#include <string.h>
 
 typedef struct metadata_block{
     size_t size;
