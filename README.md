@@ -12,6 +12,7 @@ A minimal custom memory allocator written in C, inspired by standard `malloc`. B
 - **First-Fit Search Strategy**: Reuses previously allocated or freed blocks by traversing the metadata list.
 - **Block Splitting**: Subdivides oversized blocks into an active allocation and a remainder free block to reduce fragmentation.
 - **O(1) Bidirectional Coalescing (`my_free`)**: Merges newly freed memory with adjacent free blocks (both left and right) in constant time to reclaim contiguous memory space.
+- **Dynamic Resizing (`my_realloc`)**: Handles in-place contraction via block splitting, zero-copy expansion by absorbing contiguous right-hand free neighbors, and safe fallback reallocation with data preservation (`memcpy`).
 
 ---
 
@@ -22,3 +23,4 @@ The allocator includes a test suite (`my_test.c`) verifying core runtime guarant
 - **Pointer Alignment**: Asserts `(uintptr_t)ptr % 16 == 0` across variable-sized allocations (e.g., odd and non-power-of-two sizes like 5, 17, 33 bytes).
 - **Data Integrity**: Validates physical Read/Write persistence across block boundaries without neighbor metadata corruption.
 - **Memory Recycling**: Confirms immediate block reuse upon deallocation without invoking additional system calls.
+- **Reallocation & Boundary Invariants**: Verifies data retention across growth/shrink cycles, POSIX edge cases (`realloc(ptr, 0)` behaves like free, `realloc(NULL, size)` behaves like alloc), and in-place expansion behavior.
