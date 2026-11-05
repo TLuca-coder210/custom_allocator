@@ -3,6 +3,7 @@
 #include "my_alloc.h"
 #include <stdint.h>
 #include <sys/mman.h>
+#include <string.h>
 
 extern void *my_alloc(size_t size);
 extern void my_free(void *ptr);
@@ -102,4 +103,33 @@ void tc_free(void *ptr){
     tcache_node_t *new_start = (tcache_node_t*)ptr;
     tcache.bins[index] = new_start;
     new_start->next = start_stack;
+}
+
+void *tc_realloc(void *ptr, size_t size){
+    if(ptr == NULL){
+        return tc_alloc(size);
+    }
+    if(size == 0){
+        tc_free(ptr);
+        return NULL;
+    }
+    uintptr_t ptr_val = (uintptr_t)ptr;
+    uintptr_t page_start = ptr_val & ~(PAGE_SIZE - 1);
+
+    slab_header_t *ptr_start = (slab_header_t*)page_start;
+    if(ptr_start->code != 0xCAFEBABE){
+        return my_realloc(ptr, size);
+    }
+    size_t block_size = ptr_start->block_size;
+    if(block_size >= size){
+        return ptr;
+    }
+    void *new_ptr = tc_alloc(size);
+    if (new_ptr == NULL) {
+        return NULL;
+    }
+    memcpy(new_ptr, ptr, block_size);
+    tc_free(ptr);
+
+    return new_ptr;
 }
